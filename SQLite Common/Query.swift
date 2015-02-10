@@ -586,14 +586,14 @@ public struct Query {
     // MARK: - Aggregate Functions
 
     /// Runs count(*) against the query and returns it.
-    public var count: Int { return count(Expression<()>(literal: "*")) }
+    public var count: Int { return calculate(SQLite_count(*))! }
 
     /// Runs count() against the query.
     ///
     /// :param: column The column used for the calculation.
     ///
     /// :returns: The number of rows matching the given column.
-    public func count<V>(column: Expression<V>) -> Int {
+    public func count<V: Value>(column: Expression<V?>) -> Int {
         return calculate(SQLite_count(column))!
     }
 
@@ -602,7 +602,16 @@ public struct Query {
     /// :param: column The column used for the calculation.
     ///
     /// :returns: The number of rows matching the given column.
-    public func count<V>(distinct column: Expression<V>) -> Int {
+    public func count<V: Value>(distinct column: Expression<V>) -> Int {
+        return calculate(SQLite_count(distinct: column))!
+    }
+
+    /// Runs count() with DISTINCT against the query.
+    ///
+    /// :param: column The column used for the calculation.
+    ///
+    /// :returns: The number of rows matching the given column.
+    public func count<V: Value>(distinct column: Expression<V?>) -> Int {
         return calculate(SQLite_count(distinct: column))!
     }
 
@@ -611,8 +620,8 @@ public struct Query {
     /// :param: star A literal *.
     ///
     /// :returns: The number of rows matching the given column.
-    public func count<V>(distinct star: Star) -> Int {
-        return calculate(SQLite_count(distinct: star(nil, nil)))!
+    public func count(distinct star: Star) -> Int {
+        return calculate(SQLite_count(distinct: star))!
     }
 
     /// Runs max() against the query.
@@ -738,7 +747,7 @@ public struct Row {
     }
     public func get<V: Value>(column: Expression<V?>) -> V? {
         func valueAtIndex(idx: Int) -> V? {
-            if let value = values[idx] as? V.Datatype { return (V.fromDatatypeValue(value) as V) }
+            if let value = values[idx] as? V.Datatype { return (V.fromDatatypeValue(value) as! V) }
             return nil
         }
 
@@ -790,7 +799,8 @@ public struct QueryGenerator: GeneratorType {
     private lazy var columnNames: [String: Int] = {
         var (columnNames, idx) = ([String: Int](), 0)
         column: for each in self.query.columns {
-            let pair = split(each.expression.SQL) { $0 == "." }
+            // FIXME: rdar://19769314 // split(each.expression.SQL) { $0 == "." }
+            let pair = split(each.expression.SQL, { $0 == "." })
             let (tableName, column) = (pair.count > 1 ? pair.first : nil, pair.last!)
 
             func expandGlob(namespace: Bool) -> Query -> () {

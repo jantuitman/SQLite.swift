@@ -504,8 +504,8 @@ public func ?? <V: Expressible>(expression: Expression<V?>, defaultValue: Expres
     return ifnull(expression, defaultValue)
 }
 
-public func length<V>(expression: Expression<V>) -> Expression<Int> { return wrap(__FUNCTION__, expression) }
-public func length<V>(expression: Expression<V?>) -> Expression<Int?> { return wrap(__FUNCTION__, expression) }
+public func length<V: Value>(expression: Expression<V>) -> Expression<Int> { return wrap(__FUNCTION__, expression) }
+public func length<V: Value>(expression: Expression<V?>) -> Expression<Int?> { return wrap(__FUNCTION__, expression) }
 
 public func lower(expression: Expression<String>) -> Expression<String> { return wrap(__FUNCTION__, expression) }
 public func lower(expression: Expression<String?>) -> Expression<String?> { return wrap(__FUNCTION__, expression) }
@@ -520,7 +520,7 @@ public func ltrim(expression: Expression<String?>, characters: String) -> Expres
     return wrap(__FUNCTION__, Expression<()>.join(", ", [expression, characters]))
 }
 
-public var random: Expression<Int> { return wrap(__FUNCTION__, Expression<()>()) }
+public func random() -> Expression<Int> { return wrap(__FUNCTION__, Expression<()>()) }
 
 public func replace(expression: Expression<String>, match: String, subtitute: String) -> Expression<String> {
     return wrap(__FUNCTION__, Expression<()>.join(", ", [expression, match, subtitute]))
@@ -582,13 +582,14 @@ public func upper(expression: Expression<String?>) -> Expression<String?> { retu
 
 // MARK: - Aggregate Functions
 
-public func count<V>(expression: Expression<V>) -> Expression<Int> { return wrap(__FUNCTION__, expression) }
-public func count<V>(expression: Expression<V?>) -> Expression<Int?> { return wrap(__FUNCTION__, expression) }
+public func count<V: Value>(expression: Expression<V>) -> Expression<Int> { return wrap(__FUNCTION__, expression) }
+public func count<V: Value>(expression: Expression<V?>) -> Expression<Int?> { return wrap(__FUNCTION__, expression) }
 
 public func count<V>(#distinct: Expression<V>) -> Expression<Int> { return wrapDistinct("count", distinct) }
 public func count<V>(#distinct: Expression<V?>) -> Expression<Int> { return wrapDistinct("count", distinct) }
 
-public func count(star: Star) -> Expression<Int> { return count(star(nil, nil)) }
+public func count(star: Star) -> Expression<Int> { return wrap(__FUNCTION__, star(nil, nil)) }
+public func count(distinct star: Star) -> Expression<Int> { return wrapDistinct(__FUNCTION__, star(nil, nil)) }
 
 public func max<V: Value where V.Datatype: Comparable>(expression: Expression<V>) -> Expression<V> {
     return wrap(__FUNCTION__, expression)
@@ -622,13 +623,14 @@ public func total<V: Number>(expression: Expression<V?>) -> Expression<Double?> 
 public func total<V: Number>(#distinct: Expression<V>) -> Expression<Double> { return wrapDistinct("total", distinct) }
 public func total<V: Number>(#distinct: Expression<V?>) -> Expression<Double?> { return wrapDistinct("total", distinct) }
 
-internal func SQLite_count<V>(expression: Expression<V>) -> Expression<Int> { return count(expression) }
-internal func SQLite_count<V>(expression: Expression<V?>) -> Expression<Int?> { return count(expression) }
+internal func SQLite_count<V: Value>(expression: Expression<V>) -> Expression<Int> { return count(expression) }
+internal func SQLite_count<V: Value>(expression: Expression<V?>) -> Expression<Int?> { return count(expression) }
 
-internal func SQLite_count<V>(#distinct: Expression<V>) -> Expression<Int> { return count(distinct: distinct) }
-internal func SQLite_count<V>(#distinct: Expression<V?>) -> Expression<Int> { return count(distinct: distinct) }
+internal func SQLite_count<V: Value>(#distinct: Expression<V>) -> Expression<Int> { return count(distinct: distinct) }
+internal func SQLite_count<V: Value>(#distinct: Expression<V?>) -> Expression<Int> { return count(distinct: distinct) }
 
 internal func SQLite_count(star: Star) -> Expression<Int> { return count(star) }
+internal func SQLite_count(distinct star: Star) -> Expression<Int> { return count(distinct: star) }
 
 internal func SQLite_max<V: Value where V.Datatype: Comparable>(expression: Expression<V>) -> Expression<V> {
     return max(expression)
@@ -671,7 +673,7 @@ private func wrapDistinct<V, U>(function: String, expression: Expression<V>) -> 
 public typealias Star = (Expression<Binding>?, Expression<Binding>?) -> Expression<()>
 
 public func * (Expression<Binding>?, Expression<Binding>?) -> Expression<()> {
-    return Expression<()>(literal: "*")
+    return Expression(literal: "*")
 }
 
 public func contains<V: Value>(values: [V], column: Expression<V>) -> Expression<Bool> {
